@@ -34,7 +34,7 @@ function App() {
           
           <Route 
             path="/cadastrar-item" 
-            element={<CadastroItem setItems={setItems} />} 
+            element={<CadastroItem />}
           />
           <Route 
             path="/cadastrar-familia" 
@@ -46,7 +46,7 @@ function App() {
           />
           <Route 
             path="/inventario" 
-            element={<Inventario items={items} />} 
+            element={<Inventario />}
           />
         </Routes>
       </Layout>
