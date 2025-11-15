@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { db } from '../firebase';
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const styles = {
   container: {
@@ -27,7 +29,7 @@ const styles = {
     borderRadius: '8px',
     boxSizing: 'border-box',
   },
-  textarea: { // Adicionando estilo para anotações
+  textarea: {
     width: '100%',
     padding: '0.8rem',
     fontSize: '1rem',
@@ -39,7 +41,7 @@ const styles = {
   },
   button: {
     padding: '1.2rem',
-    backgroundColor: '#007bff', // Azul padrão
+    backgroundColor: '#007bff', // Azul
     color: 'white',
     textDecoration: 'none',
     textAlign: 'center',
@@ -49,40 +51,56 @@ const styles = {
     border: 'none',
     cursor: 'pointer',
     marginTop: '1rem',
+    opacity: 1,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+    cursor: 'not-allowed',
   }
 };
 
-const CadastroFamilia = ({ setFamilies }) => {
+const CadastroFamilia = () => {
   const [responsibleName, setResponsibleName] = useState('');
-  const [contact, setContact] = useState(''); 
+  const [contact, setContact] = useState('');
   const [members, setMembers] = useState(1);
   const [notes, setNotes] = useState('');
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (!responsibleName) {
       alert('Por favor, preencha o nome do responsável.');
       return;
     }
+    
+    setIsSubmitting(true);
 
     const newFamily = {
-      id: Date.now(), // Adiciona um ID único (baseado no tempo)
       name: responsibleName,
       contact: contact,
       members: parseInt(members, 10),
       notes: notes,
-      registeredAt: new Date().toISOString(),
+      registeredAt: serverTimestamp(), 
     };
 
-    setFamilies(currentFamilies => [newFamily, ...currentFamilies]); // Adiciona no topo da lista
+    try {
+      const docRef = await addDoc(collection(db, "families"), newFamily);
+      
+      console.log("Documento salvo com ID: ", docRef.id);
+      alert('Família cadastrada com sucesso!');
 
-    alert('Família cadastrada com sucesso!');
+      setResponsibleName('');
+      setContact('');
+      setMembers(1);
+      setNotes('');
 
-    setResponsibleName('');
-    setContact('');
-    setMembers(1);
-    setNotes('');
+    } catch (e) {
+      console.error("Erro ao adicionar documento: ", e);
+      alert('Erro ao salvar a família. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -101,6 +119,7 @@ const CadastroFamilia = ({ setFamilies }) => {
             style={styles.input}
             placeholder="Ex: Maria da Silva"
             required
+            disabled={isSubmitting}
           />
         </div>
 
@@ -114,6 +133,7 @@ const CadastroFamilia = ({ setFamilies }) => {
             onChange={(e) => setContact(e.target.value)}
             style={styles.input}
             placeholder="Ex: (34) 99999-9999 ou Rua..."
+            disabled={isSubmitting}
           />
         </div>
 
@@ -128,10 +148,11 @@ const CadastroFamilia = ({ setFamilies }) => {
             style={styles.input}
             min="1"
             required
+            disabled={isSubmitting}
           />
         </div>
 
-        {/* Campo: Anotações (Importante para o histórico) */}
+        {/* Campo: Anotações */}
         <div>
           <label htmlFor="notes" style={styles.label}>
             Anotações (Ex: precisa de fralda M):
@@ -142,12 +163,20 @@ const CadastroFamilia = ({ setFamilies }) => {
             onChange={(e) => setNotes(e.target.value)}
             style={styles.textarea}
             placeholder="Qualquer informação relevante sobre a família..."
+            disabled={isSubmitting}
           />
         </div>
 
         {/* Botão de Envio */}
-        <button type="submit" style={styles.button}>
-          Salvar Família
+        <button 
+          type="submit" 
+          style={{
+            ...styles.button, 
+            ...(isSubmitting ? styles.buttonDisabled : {})
+          }}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Salvando...' : 'Salvar Família'}
         </button>
       </form>
     </div>
